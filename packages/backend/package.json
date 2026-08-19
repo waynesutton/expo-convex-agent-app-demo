@@ -1,0 +1,26 @@
+{
+  "name": "@expo-demo/backend",
+  "version": "0.1.0",
+  "private": true,
+  "main": "convex/_generated/api.js",
+  "types": "convex/_generated/api.d.ts",
+  "scripts": {
+    "dev": "convex dev",
+    "deploy": "convex deploy",
+    "site:preview": "static-hosting upload -d ../../landing --no-spa && static-hosting upload -c demoApp -d ../../apps/native/dist --build-command \"npm --prefix ../../apps/native run build:web\"",
+    "site:deploy": "convex deploy && static-hosting upload --prod -d ../../landing --no-spa && static-hosting upload --prod -c demoApp -d ../../apps/native/dist --build-command \"npm --prefix ../../apps/native run build:web\"",
+    "typecheck": "tsc --noEmit"
+  },
+  "dependencies": {
+    "@agentmail/convex": "^0.1.0",
+    "@convex-dev/expo-push-notifications": "^0.3.1",
+    "@convex-dev/rate-limiter": "^0.3.2",
+    "@convex-dev/static-hosting": "^0.2.1",
+    "@firecrawl/firecrawl-convex": "^0.1.1",
+    "convex": "^1.44.0",
+    "convex-helpers": "^0.1.123"
+  },
+  "devDependencies": {
+    "typescript": "^5.6.0"
+  }
+}

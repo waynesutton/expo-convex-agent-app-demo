@@ -1,0 +1,16 @@
+{
+  "name": "expo-demo",
+  "private": true,
+  "workspaces": ["apps/*", "packages/*"],
+  "scripts": {
+    "dev": "npm-run-all --parallel dev:backend dev:native",
+    "dev:backend": "npm run dev --workspace packages/backend",
+    "dev:native": "npm run start --workspace apps/native",
+    "site:preview": "npm run site:preview --workspace packages/backend",
+    "site:deploy": "npm run site:deploy --workspace packages/backend",
+    "typecheck": "npm run typecheck --workspaces --if-present"
+  },
+  "devDependencies": {
+    "npm-run-all": "^4.1.5"
+  }
+}

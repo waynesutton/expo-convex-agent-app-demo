@@ -1,0 +1,531 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8" />
+<meta name="viewport" content="width=device-width, initial-scale=1" />
+<title>App docs, set up expo-demo with Convex and Expo</title>
+<meta name="description" content="The full setup and how it works guide for the expo-demo template: fork it, provision Convex, run the Expo app, add keys, and ship." />
+<style>
+  /* Greyred style, same tokens as index.html and the app (apps/native/lib/theme.ts). */
+  :root {
+    --paper: #fafafa;
+    --mist: #f2f2f2;
+    --field: #eaeaea;
+    --line: #e0e0e0;
+    --line-soft: #eaeaea;
+    --ink: #171717;
+    --slate: #4d4d4d;
+    --faint: #888888;
+    --red: #c03d2e;
+    --on-ink: #ffffff;
+    --mono: ui-monospace, "SF Mono", Menlo, "Roboto Mono", monospace;
+    --sans: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif;
+  }
+  * { margin: 0; padding: 0; box-sizing: border-box; }
+  [hidden] { display: none !important; }
+  html { scroll-behavior: smooth; }
+  body {
+    font-family: var(--sans);
+    background: var(--paper);
+    color: var(--ink);
+    line-height: 1.65;
+    font-size: 16px;
+  }
+  a { color: inherit; }
+  .wrap { max-width: 760px; margin: 0 auto; padding: 0 24px; }
+
+  /* Nav, same as index */
+  nav {
+    display: flex; align-items: center; justify-content: space-between;
+    padding: 20px 0;
+    border-bottom: 1px solid var(--line-soft);
+  }
+  .wordmark { font-family: var(--mono); font-size: 15px; font-weight: 400; text-decoration: none; }
+  .wordmark span { color: var(--red); }
+  nav .links { display: flex; gap: 20px; flex-wrap: wrap; }
+  nav .links a { color: var(--slate); font-size: 14px; text-decoration: none; }
+  nav .links a:hover { color: var(--ink); }
+  nav .links a[aria-current] { color: var(--ink); }
+
+  /* Mobile nav. Below 720px the link row hides behind a menu button that
+     opens a right side drawer with the site links and the page sections. */
+  .menu-btn {
+    display: none; align-items: center; justify-content: center;
+    width: 40px; height: 40px; border-radius: 10px; color: var(--ink);
+    background: var(--mist); border: 1px solid var(--line); cursor: pointer;
+  }
+  .menu-btn svg { display: block; }
+  @media (max-width: 720px) {
+    nav .links { display: none; }
+    .menu-btn { display: inline-flex; }
+  }
+  .scrim {
+    position: fixed; inset: 0; background: rgba(23, 23, 23, 0.35);
+    opacity: 0; pointer-events: none; transition: opacity 160ms ease; z-index: 40;
+  }
+  .scrim.open { opacity: 1; pointer-events: auto; }
+  .drawer {
+    position: fixed; top: 0; right: 0; bottom: 0;
+    width: min(300px, 84vw);
+    background: var(--paper); border-left: 1px solid var(--line);
+    transform: translateX(100%); visibility: hidden;
+    transition: transform 200ms ease, visibility 0s 200ms;
+    z-index: 50; padding: 16px 24px 32px; overflow-y: auto;
+  }
+  .drawer.open { transform: translateX(0); visibility: visible; transition: transform 200ms ease; }
+  .drawer-head {
+    display: flex; align-items: center; justify-content: space-between;
+    padding: 4px 0 14px; border-bottom: 1px solid var(--line-soft); margin-bottom: 4px;
+  }
+  .drawer-label { font-family: var(--mono); font-size: 12px; font-weight: 600; color: var(--faint); letter-spacing: 0.04em; }
+  .drawer-label::before { content: "// "; color: var(--red); }
+  .drawer-close {
+    display: inline-flex; align-items: center; justify-content: center;
+    width: 32px; height: 32px; border-radius: 8px; color: var(--slate);
+    background: none; border: none; cursor: pointer;
+  }
+  .drawer-close:hover { color: var(--ink); background: var(--mist); }
+  .drawer a {
+    display: block; font-size: 15px; color: var(--slate); text-decoration: none;
+    padding: 12px 0; border-bottom: 1px solid var(--line-soft);
+  }
+  .drawer a:hover, .drawer a[aria-current] { color: var(--ink); }
+  .drawer .drawer-sections { display: block; padding: 18px 0 8px; border-bottom: none; }
+  .drawer .drawer-sections + a, .drawer a.section-link { font-size: 14px; padding: 9px 0; }
+  @media (prefers-reduced-motion: reduce) {
+    .drawer, .drawer.open, .scrim { transition: none; }
+  }
+
+  /* Page header */
+  header { padding: 56px 0 8px; }
+  h1 {
+    font-size: clamp(24px, 4.5vw, 34px);
+    font-weight: 500;
+    letter-spacing: -0.02em;
+    line-height: 1.2;
+  }
+  header p.lede { margin-top: 14px; color: var(--slate); font-size: 16px; max-width: 620px; }
+
+  /* On this page */
+  .toc {
+    margin: 32px 0 8px;
+    background: var(--mist); border: 1px solid var(--line);
+    border-radius: 14px; padding: 20px 22px;
+  }
+  .toc b { font-family: var(--mono); font-size: 12px; font-weight: 600; color: var(--faint); letter-spacing: 0.04em; }
+  .toc ol { margin-top: 10px; padding-left: 20px; columns: 2; column-gap: 32px; }
+  @media (max-width: 560px) { .toc ol { columns: 1; } }
+  .toc li { font-size: 14px; padding: 3px 0; break-inside: avoid; }
+  .toc a { color: var(--slate); text-decoration: none; }
+  .toc a:hover { color: var(--ink); }
+
+  /* Sections and prose */
+  section { padding: 44px 0 4px; }
+  section + section { border-top: 1px solid var(--line-soft); margin-top: 40px; }
+  h2 { font-size: 15px; font-weight: 600; font-family: var(--mono); margin-bottom: 20px; scroll-margin-top: 24px; }
+  h2::before { content: "// "; color: var(--red); }
+  h3 { font-size: 15px; font-weight: 600; margin: 28px 0 10px; }
+  p { color: var(--slate); font-size: 15px; margin-bottom: 14px; max-width: 680px; }
+  p b, li b { color: var(--ink); font-weight: 600; }
+  section a { color: var(--ink); text-decoration-color: var(--line); text-underline-offset: 3px; }
+  section a:hover { text-decoration-color: var(--red); }
+  ul.list, ol.list { margin: 0 0 16px 20px; }
+  .list li { color: var(--slate); font-size: 15px; padding: 4px 0; }
+  code {
+    font-family: var(--mono); font-size: 13px; color: var(--ink);
+    background: var(--mist); padding: 2px 6px; border-radius: 6px;
+  }
+
+  /* Code blocks */
+  pre {
+    background: var(--ink); color: var(--on-ink);
+    font-family: var(--mono); font-size: 13px; line-height: 1.7;
+    border-radius: 12px; padding: 18px 20px; overflow-x: auto;
+    margin: 16px 0 20px;
+  }
+  pre code { background: none; color: inherit; padding: 0; font-size: inherit; }
+  pre .c { color: #9a9a9a; } /* comment lines inside code blocks */
+
+  /* Callout */
+  .note {
+    display: flex; gap: 10px; align-items: baseline;
+    background: var(--mist); border: 1px solid var(--line);
+    border-radius: 12px; padding: 14px 16px; margin: 16px 0 20px;
+    font-size: 14px; color: var(--slate);
+  }
+  .note .dot { width: 7px; height: 7px; border-radius: 50%; background: var(--red); flex: none; position: relative; top: -1px; }
+  .note b { color: var(--ink); }
+
+  /* Tables */
+  table { width: 100%; border-collapse: collapse; margin: 16px 0 20px; font-size: 14px; }
+  th {
+    text-align: left; font-family: var(--mono); font-size: 12px; font-weight: 600;
+    color: var(--faint); padding: 8px 12px 8px 0; border-bottom: 1px solid var(--line);
+  }
+  td { color: var(--slate); padding: 9px 12px 9px 0; border-bottom: 1px solid var(--line-soft); vertical-align: top; }
+  td code { white-space: nowrap; }
+
+  /* Footer */
+  footer {
+    border-top: 1px solid var(--line-soft);
+    margin-top: 56px; padding: 32px 0 48px;
+    display: flex; flex-wrap: wrap; gap: 20px; align-items: center; justify-content: space-between;
+    color: var(--faint); font-size: 13px;
+  }
+  footer .links { display: flex; gap: 18px; flex-wrap: wrap; }
+  footer a { color: var(--slate); text-decoration: none; }
+  footer a:hover { color: var(--ink); }
+</style>
+</head>
+<body>
+<div class="wrap">
+
+  <nav>
+    <a class="wordmark" href="index.html">expo demo w/ <span>convex</span></a>
+    <div class="links">
+      <a href="index.html">Home</a>
+      <a data-demo href="#" hidden>Demo</a>
+      <a href="docs.html" aria-current="page">App docs</a>
+      <a data-repo href="#" hidden>GitHub</a>
+      <a href="https://docs.convex.dev/home">Convex docs</a>
+      <a href="https://docs.expo.dev/">Expo docs</a>
+    </div>
+    <button class="menu-btn" id="menuBtn" aria-label="Open menu" aria-expanded="false" aria-controls="drawer">
+      <svg width="18" height="18" viewBox="0 0 18 18" fill="none" aria-hidden="true">
+        <path d="M2 5h14M2 12h14" stroke="currentColor" stroke-width="1.6" stroke-linecap="round"/>
+      </svg>
+    </button>
+  </nav>
+
+  <div class="scrim" id="scrim"></div>
+  <aside class="drawer" id="drawer" aria-label="Menu">
+    <div class="drawer-head">
+      <span class="drawer-label">menu</span>
+      <button class="drawer-close" id="drawerClose" aria-label="Close menu">
+        <svg width="14" height="14" viewBox="0 0 14 14" fill="none" aria-hidden="true">
+          <path d="M2 2l10 10M12 2L2 12" stroke="currentColor" stroke-width="1.6" stroke-linecap="round"/>
+        </svg>
+      </button>
+    </div>
+    <a href="index.html">Home</a>
+    <a data-demo href="#" hidden>Demo</a>
+    <a href="docs.html" aria-current="page">App docs</a>
+    <a data-repo href="#" hidden>GitHub</a>
+    <a href="https://docs.convex.dev/home">Convex docs</a>
+    <a href="https://docs.expo.dev/">Expo docs</a>
+    <span class="drawer-label drawer-sections">on this page</span>
+    <a class="section-link" href="#what-this-is">What this is</a>
+    <a class="section-link" href="#what-you-need">What you need</a>
+    <a class="section-link" href="#get-your-copy">Get your copy</a>
+    <a class="section-link" href="#backend">Set up the Convex backend</a>
+    <a class="section-link" href="#run-the-app">Run the Expo app</a>
+    <a class="section-link" href="#model-key">Add your model key</a>
+    <a class="section-link" href="#tools">Optional workspace tools</a>
+    <a class="section-link" href="#how-it-works">How the app works</a>
+    <a class="section-link" href="#make-it-yours">Make it yours</a>
+    <a class="section-link" href="#ship-it">Ship it</a>
+    <a class="section-link" href="#host-on-convex">Host it on Convex</a>
+    <a class="section-link" href="#troubleshooting">When things break</a>
+    <a class="section-link" href="#rules">The rules of this repo</a>
+  </aside>
+
+  <header>
+    <h1>App docs</h1>
+    <p class="lede">Everything you need to fork this template, stand up your own Convex backend, run the Expo app on your phone, and understand what every piece does. Written for someone doing this for the first time. No step is assumed.</p>
+  </header>
+
+  <div class="toc">
+    <b>ON THIS PAGE</b>
+    <ol>
+      <li><a href="#what-this-is">What this is</a></li>
+      <li><a href="#what-you-need">What you need</a></li>
+      <li><a href="#get-your-copy">Get your copy</a></li>
+      <li><a href="#backend">Set up the Convex backend</a></li>
+      <li><a href="#run-the-app">Run the Expo app</a></li>
+      <li><a href="#model-key">Add your model key</a></li>
+      <li><a href="#tools">Optional workspace tools</a></li>
+      <li><a href="#how-it-works">How the app works</a></li>
+      <li><a href="#make-it-yours">Make it yours</a></li>
+      <li><a href="#ship-it">Ship it</a></li>
+      <li><a href="#host-on-convex">Host it on Convex</a></li>
+      <li><a href="#troubleshooting">When things break</a></li>
+      <li><a href="#rules">The rules of this repo</a></li>
+    </ol>
+  </div>
+
+  <section id="what-this-is">
+    <h2>what this is</h2>
+    <p>expo-demo is a mobile agent chat app. You create bots, give each one a job, and message them like coworkers. Bots can share a group chat, answer @mentions, save skills you paste in, remember things between conversations, and send you reminders on a schedule.</p>
+    <p>It is two projects in one repo, which is what "monorepo" means:</p>
+    <table>
+      <tr><th>Folder</th><th>What it is</th></tr>
+      <tr><td><code>apps/native</code></td><td>The Expo app. React Native screens written in TypeScript, routed by file name with expo-router. This is what runs on your phone.</td></tr>
+      <tr><td><code>packages/backend</code></td><td>The Convex backend. The database schema, the agent loop, the tools, the cron jobs. This runs on Convex's cloud (or a local dev deployment).</td></tr>
+      <tr><td><code>landing/</code></td><td>This site. Two static HTML files, no build step.</td></tr>
+      <tr><td><code>docs/</code></td><td>The markdown docs this page is compiled from, with deeper detail per topic.</td></tr>
+    </table>
+    <p>The two halves talk over one URL. The app holds a Convex client pointed at your deployment, and every screen reads data with reactive queries. When the backend writes a new message, the chat updates on its own. There is no polling and no websocket code in the app; Convex handles the transport.</p>
+    <p><a href="https://docs.convex.dev/home">Convex</a> is a backend platform where your database, server functions, scheduled jobs, and file storage are all TypeScript. <a href="https://docs.expo.dev/">Expo</a> is the toolchain that builds and runs the React Native app. Expo wrote about why the pairing works: <a href="https://expo.dev/blog/convex-is-a-backend-for-expo-apps">Convex is a backend for Expo apps</a>.</p>
+  </section>
+
+  <section id="what-you-need">
+    <h2>what you need</h2>
+    <ul class="list">
+      <li><b>Node 20 or newer, npm 10 or newer.</b> Check with <code>node --version</code> and <code>npm --version</code>. If you need an install, grab the LTS from <a href="https://nodejs.org">nodejs.org</a>.</li>
+      <li><b>Expo Go on your phone.</b> Free app, App Store or Play Store. It runs the template during development so you skip Xcode and Android Studio entirely. A simulator works too if you have one.</li>
+      <li><b>A Convex account, or anonymous agent mode.</b> Free tier, no card. The first <code>npx convex dev</code> walks you through login. Coding agents that cannot log in use <code>CONVEX_AGENT_MODE=anonymous npx convex dev</code> instead (no account).</li>
+      <li><b>No API keys required to browse the demo.</b> A model key from Anthropic, OpenAI, xAI, OpenRouter, or Concentrate is only needed to send a live reply. You paste it into the app later, not into any file. Firecrawl, AgentMail, Merge, and Runware keys are optional.</li>
+    </ul>
+    <p>That is the whole list. Git helps but even that is optional if you download the repo as a zip.</p>
+  </section>
+
+  <section id="get-your-copy">
+    <h2>get your copy</h2>
+    <p>Two ways to copy the repo, and the difference matters:</p>
+    <ul class="list">
+      <li><b>Use this template</b> (the green button on GitHub) gives you a brand new repo with clean history. Pick this if you are building your own app on top.</li>
+      <li><b>Fork</b> keeps a link to the original so you can pull upstream changes later. Pick this if you want future template updates.</li>
+    </ul>
+    <p>Either way, clone your copy and install:</p>
+    <pre><code>git clone &lt;your-repo-url&gt; expo-demo
+cd expo-demo
+npm install</code></pre>
+    <p><code>npm install</code> at the root installs dependencies for both the app and the backend, because the repo uses npm workspaces. You never run install inside the subfolders.</p>
+    <div class="note"><span class="dot"></span><span><b>Shortcut for agent users.</b> Open your copy in Claude Code, Cursor, or Codex and paste the setup prompt from the <a href="index.html#prompt">home page</a>. The agent runs every step on this page for you. The rest of this guide is the manual path, and the map for when you want to know what the agent did.</span></div>
+  </section>
+
+  <section id="backend">
+    <h2>set up the convex backend</h2>
+    <p>The backend needs a deployment: a running Convex instance that holds your data and functions. One command creates it.</p>
+    <pre><code>cd packages/backend
+npx convex dev</code></pre>
+    <p>First run does four things:</p>
+    <ol class="list">
+      <li>Opens a browser for Convex login, or account creation if you are new.</li>
+      <li>Creates a project and a development deployment inside it.</li>
+      <li>Pushes the schema and functions from <code>convex/</code>, and generates the typed client in <code>convex/_generated</code>. The app imports its API types from there, which is why the folder is gitignored: every machine regenerates it.</li>
+      <li>Prints your deployment URL, something like <code>https://happy-otter-123.convex.cloud</code>. Copy it, the app needs it next.</li>
+    </ol>
+    <p><b>Leave this terminal running.</b> It watches the backend files and pushes changes live while you develop. Closing it does not delete anything; your deployment keeps running in the cloud.</p>
+    <p>The Firecrawl component requires <code>FIRECRAWL_API_KEY</code> to exist before a push succeeds. You do not need a real key. Run this once from <code>packages/backend</code>:</p>
+    <pre><code>npx convex env set FIRECRAWL_API_KEY unset</code></pre>
+    <p>The app treats <code>unset</code> as not configured and keeps scrape/search out of the tool list until you replace it with a real <code>fc-...</code> key.</p>
+
+    <h3>No login possible? Anonymous agent mode</h3>
+    <p>Coding agents running unattended cannot click through a login page. Convex has a mode for that:</p>
+    <pre><code>CONVEX_AGENT_MODE=anonymous npx convex dev</code></pre>
+    <p>This downloads a local Convex binary, serves a full deployment at <code>http://127.0.0.1:3210</code> with no account, and runs a local dashboard. Point the app at that URL instead. When a human takes over, run plain <code>npx convex dev</code>, log in, and swap the URL. Details at <a href="https://docs.convex.dev/cli/agent-mode">docs.convex.dev/cli/agent-mode</a>.</p>
+
+    <h3>Already on EAS? One command instead</h3>
+    <p>If you use Expo Application Services, this replaces the manual provisioning and env writing:</p>
+    <pre><code>npm install -g eas-cli
+eas init
+eas integrations:convex:connect</code></pre>
+    <p>It creates the Convex project, writes <code>EXPO_PUBLIC_CONVEX_URL</code> to your local env file, and sets it across your EAS environments (development, preview, production) in one step. The dashboard invite arrives by email. This flow comes from the <a href="https://docs.expo.dev/guides/using-convex/">Expo guide to using Convex</a>.</p>
+  </section>
+
+  <section id="run-the-app">
+    <h2>run the expo app</h2>
+    <p>Open a second terminal (the backend keeps the first). The app reads its Convex URL from an env file you create once:</p>
+    <pre><code>cd apps/native
+cp .env.example .env.local
+<span class="c"># open .env.local and paste the URL from the previous step:</span>
+<span class="c"># EXPO_PUBLIC_CONVEX_URL=https://&lt;your-deployment&gt;.convex.cloud</span>
+npx expo start</code></pre>
+    <p>Expo prints a QR code. Scan it with your phone camera (iOS) or inside Expo Go (Android) and the app loads. First open seeds the posed demo: three bots with scripted chats and one group thread, so the screen is never empty.</p>
+    <p><code>.env.local</code> is gitignored, so your URL never lands in a commit. The <code>EXPO_PUBLIC_</code> prefix means the value ships inside the app bundle, which is fine here; the deployment URL is public by design. Never put a secret in an <code>EXPO_PUBLIC_</code> variable.</p>
+
+    <h3>No phone handy? Web preview</h3>
+    <pre><code>cd apps/native
+npx expo install react-native-web react-dom
+npx expo start --web</code></pre>
+    <p>Same app in a browser tab. Two differences on web: key storage falls back to localStorage since the device keychain is native only, and push registration is skipped. Web is for previewing; the native app is the product.</p>
+  </section>
+
+  <section id="model-key">
+    <h2>add your model key</h2>
+    <p>The template ships with no model key and proxies nothing through anyone's account. You bring your own. In the app, open Settings, pick a provider, paste the key.</p>
+    <table>
+      <tr><th>Provider</th><th>Key prefix</th><th>Default model</th></tr>
+      <tr><td>Anthropic</td><td><code>sk-ant-</code></td><td>claude-sonnet-4-6</td></tr>
+      <tr><td>OpenAI</td><td><code>sk-</code></td><td>gpt-5</td></tr>
+      <tr><td>xAI</td><td><code>xai-</code></td><td>grok-4</td></tr>
+      <tr><td>OpenRouter</td><td><code>sk-or-</code></td><td>anthropic/claude-sonnet-4-6</td></tr>
+      <tr><td>Concentrate</td><td>varies</td><td>claude-sonnet-4-6</td></tr>
+    </table>
+    <p>Concentrate and OpenRouter are gateways: one key reaches every major model through an OpenAI compatible API. Pick one when you want to switch models without juggling provider keys. Default model IDs live in one map in <code>packages/backend/convex/agent.ts</code> if you want different ones.</p>
+    <p>Where the key goes, step by step: it is written to expo-secure-store (the iOS Keychain or Android Keystore), read back when you send a message, passed as an argument to the agent action over HTTPS, used for the one provider request, and gone when the action returns. There is no <code>apiKey</code> field in the schema on purpose, and the agent path never logs its arguments. Removing the key in Settings deletes it from the device immediately.</p>
+  </section>
+
+  <section id="tools">
+    <h2>optional workspace tools</h2>
+    <p>Four tools the bots can use. All optional: a tool with no key reports itself unavailable and the agent works around it. These keys belong to the app operator (you), not to users, so they live as Convex environment variables rather than on the device.</p>
+    <pre><code>cd packages/backend
+npx convex env set FIRECRAWL_API_KEY fc-...      <span class="c"># web scraping and search, firecrawl.dev</span>
+npx convex env set AGENTMAIL_API_KEY ...         <span class="c"># email for agents, agentmail.to</span>
+npx convex env set AGENTMAIL_INBOX_ID ...        <span class="c"># the inbox email address</span>
+npx convex env set MERGE_API_KEY ...             <span class="c"># business data, merge.dev</span>
+npx convex env set MERGE_ACCOUNT_TOKEN ...       <span class="c"># from Merge Link</span>
+npx convex env set RUNWARE_API_KEY ...           <span class="c"># image generation, runware.ai</span></code></pre>
+    <table>
+      <tr><th>Tool</th><th>What bots can do with it</th></tr>
+      <tr><td>Firecrawl</td><td>Fetch any URL as clean markdown and run web searches that return page content. Also powers skill import from links. Uses the official <a href="https://www.convex.dev/components/firecrawl/firecrawl-convex">@firecrawl/firecrawl-convex</a> component: typed v2 API calls, retries on transient failures, and durable site crawls when your fork wants them. The component requires the env var to exist before a deploy, so with no key set it to the placeholder <code>unset</code>.</td></tr>
+      <tr><td>AgentMail</td><td>Send email from the app's own inbox and list recent threads. Uses the official <a href="https://www.npmjs.com/package/@agentmail/convex">@agentmail/convex</a> component: durable sends with retries and reactive delivery status. Register the webhook (see <code>docs/integrations.md</code>) and inbound mail lands in Convex tables too.</td></tr>
+      <tr><td>Merge</td><td>Read HRIS, ATS, CRM, ticketing, and accounting data through one API. Ask a bot "how many open tickets do we have."</td></tr>
+      <tr><td>Runware</td><td>Generate images on request and reply with the URL. Default model is FLUX.1 dev; swap the constant in <code>convex/tools/runware.ts</code>.</td></tr>
+    </table>
+    <p>Every tool you enable works with all of your bots; the registry is shared. To add your own tool, copy the shape of <code>convex/tools/merge.ts</code> (a definition the model sees plus an execute function) and register it in <code>convex/agent.ts</code>. The chat UI renders any tool call generically, so no UI work. The Settings screen shows a Configured badge for Firecrawl and AgentMail without exposing any key.</p>
+  </section>
+
+  <section id="how-it-works">
+    <h2>how the app works</h2>
+
+    <h3>The agent loop</h3>
+    <p>Everything runs through one readable Convex action, <code>convex/agent.ts</code>. When you send a message:</p>
+    <ol class="list">
+      <li>A mutation writes your message to the database, then the app calls the <code>runAgent</code> action with the thread, provider, model, and your key.</li>
+      <li>The action loads the thread history and creates an assistant message with status <code>streaming</code>.</li>
+      <li>It calls the provider's chat API with the system prompt, history, and tool definitions.</li>
+      <li>Text comes back in chunks; each chunk is appended through a mutation, and the chat updates instantly because the message query is reactive.</li>
+      <li>Tool calls are recorded on the message (you see a tool card), executed, and fed back to the model. Up to 6 tool rounds per run.</li>
+      <li>When the model stops, the status flips to <code>done</code>. If the app is backgrounded, a push notification fires.</li>
+    </ol>
+
+    <h3>The posed demo and the 5 minute reset</h3>
+    <p>First open seeds three bots with scripted chats plus a group thread called Monday planning: a Chief of Staff, a Coach, and a Research Bot. A cron in <code>convex/crons.ts</code> rewrites the demo chats back to their script every 5 minutes, so the demo always opens clean. Type into a demo chat and watch it heal on the next sweep. Delete a demo bot and it stays deleted; the reset only touches demo bots that still exist.</p>
+    <p>The hosted demo also runs in demo mode: chats are public, messages are filtered for language, links, and spam, key entry is disabled in Settings, and visitor created content resets on the same cron. One env var (<code>DEMO_MODE</code>) turns all of it on; forks leave it unset and get a normal private install. The full guide is in <code>docs/demo-mode.md</code>.</p>
+
+    <h3>Mentions and group chats</h3>
+    <p>Type <code>@</code> in the composer and an autocomplete strip lists your bots. A message that mentions bots goes only to those bots, in the order mentioned, and mentioning a bot not in the thread pulls it in. No mentions means every bot in the thread replies. The group icon on the home screen (visible once you have two bots) starts a group chat where bots read each other's replies and coordinate.</p>
+
+    <h3>Skills and memory</h3>
+    <p>Paste a link or a block of instructions into any chat and ask the bot to save it as a skill. The <code>skill_import</code> tool names it, stores it, and can assign it to the current bot or a teammate. URLs are read through Firecrawl when that key is set. Bots also carry memory: ask one to remember something and the <code>remember</code> tool appends it to a durable note that rides its system prompt. Both are visible and removable in bot settings.</p>
+
+    <h3>Reminders</h3>
+    <p>Each bot holds one reminder: a message, an interval from 30 minutes to daily, and a switch. A 5 minute cron sweeps due reminders and delivers each as a push notification that opens the bot's chat. Settings has a global toggle that silences everything without touching per bot schedules.</p>
+
+    <h3>Search, avatars, and rename</h3>
+    <p>The magnifying glass next to the settings gear searches bots, chat titles, and message text using <a href="https://docs.convex.dev/search/text-search">Convex full text search</a>: three search indexes in the schema, one query, results ranked and prefix matched as you type. Bot settings accepts a PNG under 2 MB as an avatar, stored in <a href="https://docs.convex.dev/file-storage/upload-files">Convex file storage</a> and validated server side. And once you fork, Settings has an app name field that rebrands the header without touching any demo content.</p>
+  </section>
+
+  <section id="make-it-yours">
+    <h2>make it yours</h2>
+    <p>The rename checklist for a fork that becomes a real app:</p>
+    <ol class="list">
+      <li><b>App identity.</b> In <code>apps/native/app.json</code>, change <code>name</code>, <code>slug</code>, and <code>scheme</code>, plus the bundle identifier under <code>ios</code> and the package name under <code>android</code>. Do this before your first EAS build.</li>
+      <li><b>Package names.</b> The three <code>package.json</code> files (root, app, backend) carry the template names.</li>
+      <li><b>In app links.</b> Set <code>REPO_URL</code> in <code>apps/native/lib/links.ts</code> so the About screen points at your repo, your README, and your docs.</li>
+      <li><b>This landing site.</b> Two constants at the top of the script in <code>index.html</code>: <code>REPO_URL</code> unhides the GitHub and Fork links, and <code>DEMO_URL</code> defaults to <code>/app/</code>, where the web demo lives once you host the site on Convex (next section). Point it elsewhere if you host the demo on another origin, or set it to <code>""</code> to hide the demo links and the QR code. Both files in <code>landing/</code> are static; Convex hosts them with one command, and GitHub Pages, Netlify, or Vercel work too.</li>
+    </ol>
+    <p>Nothing in the template phones home. Once the URLs are yours and Convex is provisioned, the upstream repo has no runtime role. The full GitHub walkthrough, including how to mark your repo as a template, is in <code>docs/github.md</code>.</p>
+  </section>
+
+  <section id="ship-it">
+    <h2>ship it</h2>
+    <p>Development and production are separate Convex deployments. When you are ready:</p>
+    <pre><code>cd packages/backend
+npx convex deploy                                <span class="c"># pushes to production</span>
+npx convex env set FIRECRAWL_API_KEY fc-... --prod   <span class="c"># repeat for each tool key</span></code></pre>
+    <p>Then build real binaries with EAS. Expo Go is for development only; push notifications and store submission need these:</p>
+    <pre><code>cd apps/native
+eas build --platform ios
+eas build --platform android
+eas submit --platform ios                        <span class="c"># lands in TestFlight first</span></code></pre>
+    <p>Make sure the production EAS environment's <code>EXPO_PUBLIC_CONVEX_URL</code> points at the production Convex URL, not your dev one. Later, JS only changes can ship over the air with <code>eas update</code>. Two store notes: BYOK apps should say in the listing that users supply their own model key, and if you ever add third party sign in, Apple requires Sign in with Apple as an option. The full walkthrough is in <code>docs/deploy.md</code>.</p>
+  </section>
+
+  <section id="host-on-convex">
+    <h2>host it on convex</h2>
+    <p>The deployment that runs your backend can also serve this site and the web demo. The template wires it up with <a href="https://www.convex.dev/components/static-hosting">@convex-dev/static-hosting</a>, a Convex component that stores built files in Convex storage and serves them over HTTP actions. No second host, no DNS, one URL:</p>
+    <table>
+      <tr><th>Path</th><th>What lives there</th></tr>
+      <tr><td><code>/</code> and <code>/docs.html</code></td><td>This landing site, served from the <code>landing/</code> folder.</td></tr>
+      <tr><td><code>/app/</code></td><td>The Expo app exported for web, with SPA fallback so client routes survive a reload.</td></tr>
+      <tr><td><code>/api/...</code></td><td>The backend's own HTTP routes, like the AgentMail webhook at <code>/api/agentmail/webhook</code>.</td></tr>
+    </table>
+    <p>The component is already installed and configured in <code>packages/backend/convex/convex.config.ts</code>. From the repo root:</p>
+    <pre><code>npm run site:preview   <span class="c"># upload both sites to your dev deployment, smoke test first</span>
+npm run site:deploy    <span class="c"># deploy the backend to prod, then upload both sites to prod</span></code></pre>
+    <p>Preview lands at <code>https://&lt;dev-deployment&gt;.convex.site</code>, production at your prod deployment's <code>.convex.site</code> URL. The upload builds the Expo web export with the right Convex URL injected, so the demo always talks to the deployment that serves it. The full guide, including custom domains, is in <code>docs/static-hosting.md</code>.</p>
+    <div class="note"><span class="dot"></span><span><b>First prod deploy?</b> Env vars are per deployment, and the Firecrawl component needs <code>FIRECRAWL_API_KEY</code> to exist before a push succeeds. Run <code>npx convex env set FIRECRAWL_API_KEY unset --prod</code> from <code>packages/backend</code> once, or the deploy fails with a MissingEnvironmentVariable error.</span></div>
+  </section>
+
+  <section id="troubleshooting">
+    <h2>when things break</h2>
+    <table>
+      <tr><th>Symptom</th><th>Likely cause and fix</th></tr>
+      <tr><td>App loads but every screen is empty or spinning</td><td><code>EXPO_PUBLIC_CONVEX_URL</code> is missing or wrong in <code>apps/native/.env.local</code>. Fix the URL, then restart <code>npx expo start</code>; Expo reads env files at startup only.</td></tr>
+      <tr><td>TypeScript errors about <code>_generated</code></td><td>The typed client has not been generated yet. Run <code>npx convex dev</code> from <code>packages/backend</code> once; it creates <code>convex/_generated</code>.</td></tr>
+      <tr><td>Bot never replies</td><td>No model key saved, or the key is invalid. Open Settings, re-paste the key. Then check the backend logs: <code>npx convex logs</code> from <code>packages/backend</code> shows the error from the provider.</td></tr>
+      <tr><td>Push notifications never arrive</td><td>Expected in Expo Go on Android, and iOS needs a real device. Build a development build: <code>eas build --profile development</code>. See <code>docs/push-notifications.md</code>.</td></tr>
+      <tr><td>A tool says it is unavailable</td><td>Its env var is not set on the deployment you are using. Set it with <code>npx convex env set</code>, and remember production needs <code>--prod</code>.</td></tr>
+      <tr><td>Demo chats look edited or messy</td><td>Wait up to 5 minutes. The reset cron rewrites them back to script on its next sweep.</td></tr>
+      <tr><td>Install or codegen fails on a fresh clone</td><td>Versions drift. Run <code>npx expo install --fix</code>, re-run <code>npx convex dev</code>, and update packages forward rather than pinning backward.</td></tr>
+    </table>
+    <p>For anything else, <code>npx convex logs</code> is the first stop; the Convex dashboard shows the same logs plus your data, live.</p>
+  </section>
+
+  <section id="rules">
+    <h2>the rules of this repo</h2>
+    <ol class="list">
+      <li><b>Convex Auth is the only auth path</b>, and it is not wired yet. The app runs auth free, one device one workspace, and the seam for adding identity is documented in <code>docs/auth.md</code>. No Better Auth, no Clerk, no WorkOS.</li>
+      <li><b>User model keys never touch the database or logs.</b> Device keychain in, function argument through, gone after the request.</li>
+      <li><b>The UI stays reactive.</b> If you find yourself writing polling code, you took a wrong turn; use a query.</li>
+      <li><b>Check the <a href="https://www.convex.dev/components">Convex components directory</a> before hand building infrastructure.</b> Push and email already come from components here; rate limiting, workflows, and RAG are a package away when your fork needs them.</li>
+    </ol>
+    <p>That is the whole guide. Fork it, run it, break the demo chats, and watch them heal.</p>
+  </section>
+
+  <footer>
+    <span>MIT licensed. Built for the Convex and Expo communities.</span>
+    <div class="links">
+      <a href="index.html">Home</a>
+      <a data-demo href="#" hidden>Demo</a>
+      <a data-repo href="#" hidden>GitHub</a>
+      <a href="https://docs.convex.dev/home">docs.convex.dev</a>
+      <a href="https://docs.expo.dev/">docs.expo.dev</a>
+    </div>
+  </footer>
+
+</div>
+
+<script>
+  // Same conventions as index.html. While REPO_URL is empty, GitHub links
+  // stay hidden. DEMO_URL defaults to the web demo served at /app/ on the
+  // same Convex deployment (see the host it on convex section); set it to
+  // "" to hide the demo links, or to a full URL for an external host.
+  const REPO_URL = "https://github.com/waynesutton/expo-convex-agent-app-demo";
+  const DEMO_URL = "/app/";
+
+  if (REPO_URL) {
+    document.querySelectorAll("[data-repo]").forEach((a) => {
+      a.href = REPO_URL;
+      a.hidden = false;
+    });
+  }
+  if (DEMO_URL) {
+    document.querySelectorAll("[data-demo]").forEach((a) => {
+      a.href = DEMO_URL;
+      a.hidden = false;
+    });
+  }
+
+  // Mobile drawer. Opens from the menu button, closes on the scrim, the
+  // close button, any link, or Escape. Body scroll locks while open.
+  const drawer = document.getElementById("drawer");
+  const scrim = document.getElementById("scrim");
+  const menuBtn = document.getElementById("menuBtn");
+  function setMenu(open) {
+    drawer.classList.toggle("open", open);
+    scrim.classList.toggle("open", open);
+    menuBtn.setAttribute("aria-expanded", String(open));
+    document.body.style.overflow = open ? "hidden" : "";
+  }
+  menuBtn.addEventListener("click", () => setMenu(true));
+  document.getElementById("drawerClose").addEventListener("click", () => setMenu(false));
+  scrim.addEventListener("click", () => setMenu(false));
+  drawer.addEventListener("click", (e) => { if (e.target.closest("a")) setMenu(false); });
+  document.addEventListener("keydown", (e) => { if (e.key === "Escape") setMenu(false); });
+</script>
+</body>
+</html>

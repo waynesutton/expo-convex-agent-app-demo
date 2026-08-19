@@ -1,0 +1,10 @@
+node_modules/
+.expo/
+dist/
+.env.local
+.env*.local
+*.log
+.DS_Store
+apps/native/ios/
+apps/native/android/
+packages/backend/convex/_generated/

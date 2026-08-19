@@ -1,0 +1,543 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8" />
+<meta name="viewport" content="width=device-width, initial-scale=1" />
+<title>expo demo w/ convex</title>
+<meta name="description" content="A monorepo template for a mobile agent chat app. Expo on the front, Convex on the back, your API keys on your device." />
+<style>
+  /* Greyred style. Grey builds the structure, one red carries the accent.
+     Same tokens as the app (apps/native/lib/theme.ts). See docs/design.md. */
+  :root {
+    --paper: #fafafa;
+    --mist: #f2f2f2;
+    --field: #eaeaea;
+    --line: #e0e0e0;
+    --line-soft: #eaeaea;
+    --ink: #171717;
+    --slate: #4d4d4d;
+    --faint: #888888;
+    --red: #c03d2e;
+    --on-ink: #ffffff;
+    --mono: ui-monospace, "SF Mono", Menlo, "Roboto Mono", monospace;
+    --sans: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif;
+  }
+  * { margin: 0; padding: 0; box-sizing: border-box; }
+  /* .btn sets display, which would otherwise override the hidden attribute
+     on unset repo and demo links. */
+  [hidden] { display: none !important; }
+  html { scroll-behavior: smooth; }
+  body {
+    font-family: var(--sans);
+    background: var(--paper);
+    color: var(--ink);
+    line-height: 1.6;
+    font-size: 16px;
+  }
+  a { color: inherit; }
+  .wrap { max-width: 880px; margin: 0 auto; padding: 0 24px; }
+
+  /* Nav */
+  nav {
+    display: flex; align-items: center; justify-content: space-between;
+    padding: 16px 0;
+    border-bottom: 1px solid var(--line-soft);
+  }
+  .wordmark { font-family: var(--mono); font-size: 15px; font-weight: 400; text-decoration: none; }
+  .wordmark span { color: var(--red); }
+  nav .links { display: flex; gap: 20px; }
+  nav .links a { color: var(--slate); font-size: 14px; text-decoration: none; }
+  nav .links a:hover { color: var(--ink); }
+
+  /* Mobile nav. Below 720px the link row hides behind a menu button that
+     opens a right side drawer. Same tokens, no framework. */
+  .menu-btn {
+    display: none; align-items: center; justify-content: center;
+    width: 40px; height: 40px; border-radius: 10px; color: var(--ink);
+    background: var(--mist); border: 1px solid var(--line); cursor: pointer;
+  }
+  .menu-btn svg { display: block; }
+  @media (max-width: 720px) {
+    nav .links { display: none; }
+    .menu-btn { display: inline-flex; }
+  }
+  .scrim {
+    position: fixed; inset: 0; background: rgba(23, 23, 23, 0.35);
+    opacity: 0; pointer-events: none; transition: opacity 160ms ease; z-index: 40;
+  }
+  .scrim.open { opacity: 1; pointer-events: auto; }
+  .drawer {
+    position: fixed; top: 0; right: 0; bottom: 0;
+    width: min(300px, 84vw);
+    background: var(--paper); border-left: 1px solid var(--line);
+    transform: translateX(100%); visibility: hidden;
+    transition: transform 200ms ease, visibility 0s 200ms;
+    z-index: 50; padding: 16px 24px 32px; overflow-y: auto;
+  }
+  .drawer.open { transform: translateX(0); visibility: visible; transition: transform 200ms ease; }
+  .drawer-head {
+    display: flex; align-items: center; justify-content: space-between;
+    padding: 4px 0 14px; border-bottom: 1px solid var(--line-soft); margin-bottom: 4px;
+  }
+  .drawer-label { font-family: var(--mono); font-size: 12px; font-weight: 600; color: var(--faint); letter-spacing: 0.04em; }
+  .drawer-label::before { content: "// "; color: var(--red); }
+  .drawer-close {
+    display: inline-flex; align-items: center; justify-content: center;
+    width: 32px; height: 32px; border-radius: 8px; color: var(--slate);
+    background: none; border: none; cursor: pointer;
+  }
+  .drawer-close:hover { color: var(--ink); background: var(--mist); }
+  .drawer a {
+    display: block; font-size: 15px; color: var(--slate); text-decoration: none;
+    padding: 12px 0; border-bottom: 1px solid var(--line-soft);
+  }
+  .drawer a:hover, .drawer a[aria-current] { color: var(--ink); }
+  @media (prefers-reduced-motion: reduce) {
+    .drawer, .drawer.open, .scrim { transition: none; }
+  }
+
+  /* Hero */
+  header { padding: 44px 0 36px; }
+  h1 {
+    font-size: clamp(28px, 5vw, 42px);
+    font-weight: 500;
+    letter-spacing: -0.02em;
+    line-height: 1.15;
+    max-width: 640px;
+  }
+  h1 em { font-style: normal; color: var(--red); }
+  .ctas { display: flex; flex-wrap: wrap; gap: 12px; margin-top: 24px; }
+  .btn {
+    display: inline-flex; align-items: center; gap: 8px;
+    font-size: 14px; font-weight: 600; text-decoration: none;
+    padding: 12px 22px; border-radius: 999px; cursor: pointer;
+    border: 1px solid transparent; transition: opacity 120ms ease;
+    font-family: var(--sans);
+  }
+  .btn:hover { opacity: 0.85; }
+  .btn-red { background: var(--red); color: var(--on-ink); }
+  .btn-ink { background: var(--ink); color: var(--on-ink); }
+  .btn-ghost { background: var(--mist); color: var(--ink); }
+  .reset-note {
+    display: inline-flex; align-items: center; gap: 8px;
+    margin-top: 20px; padding: 8px 14px;
+    background: var(--mist); border-radius: 10px;
+    color: var(--slate); font-size: 13px;
+  }
+  .reset-note b { color: var(--ink); font-weight: 600; }
+  .dot { width: 7px; height: 7px; border-radius: 50%; background: var(--red); flex: none; }
+
+  /* Sections */
+  section { padding: 36px 0; border-top: 1px solid var(--line-soft); }
+  h2 { font-size: 15px; font-weight: 600; font-family: var(--mono); margin-bottom: 18px; }
+  h2::before { content: "// "; color: var(--red); }
+
+  /* Prompt card. The full prompt stays in the DOM (hidden) so copy works;
+     the page shows one action instead of a wall of text. */
+  .prompt-card {
+    display: flex; flex-wrap: wrap; align-items: center; gap: 16px;
+    background: var(--mist); border: 1px solid var(--line);
+    border-radius: 14px; padding: 20px;
+  }
+  .prompt-card p { color: var(--slate); font-size: 14px; flex: 1 1 320px; }
+  .prompt-card .meta { display: block; margin-top: 4px; font-family: var(--mono); font-size: 12px; color: var(--faint); }
+  .copy-btn {
+    font-family: var(--sans); font-size: 14px; font-weight: 600;
+    background: var(--ink); color: var(--on-ink);
+    border: none; border-radius: 999px; padding: 12px 20px; cursor: pointer;
+    flex: none; transition: opacity 120ms ease;
+  }
+  .copy-btn:hover { opacity: 0.85; }
+  .copy-btn.copied { background: var(--red); }
+
+  /* Screenshots. Captured from the running web app at a phone viewport.
+     Each frame links to the demo app once DEMO_URL is set. */
+  .shots { display: grid; grid-template-columns: repeat(3, 1fr); gap: 20px; }
+  .shot a { display: block; text-decoration: none; }
+  .shot a[href] { cursor: pointer; transition: opacity 120ms ease; }
+  .shot a[href]:hover { opacity: 0.85; }
+  .shot img {
+    display: block; width: 100%; height: auto; aspect-ratio: 375 / 640;
+    border: 1px solid var(--line); border-radius: 18px;
+    background: var(--mist); object-fit: cover;
+  }
+  .shot figcaption {
+    margin-top: 10px; font-family: var(--mono); font-size: 12px; color: var(--faint);
+  }
+  @media (max-width: 640px) {
+    .shots { grid-template-columns: 1fr; justify-items: center; }
+    .shot { width: min(300px, 100%); }
+  }
+
+  /* Feature list */
+  .features { display: grid; grid-template-columns: repeat(auto-fit, minmax(250px, 1fr)); gap: 2px; }
+  .feature {
+    background: var(--mist); padding: 20px;
+  }
+  .features .feature:first-child { border-radius: 14px 0 0 0; }
+  .feature h3 { font-size: 14px; font-weight: 600; margin-bottom: 6px; }
+  .feature p { font-size: 13px; color: var(--slate); line-height: 1.55; }
+  .feature p a { color: var(--slate); }
+
+  /* Run it on your phone */
+  .phone { display: grid; grid-template-columns: auto 1fr; gap: 36px; align-items: start; }
+  @media (max-width: 640px) { .phone { grid-template-columns: 1fr; justify-items: center; } }
+  .qr-card {
+    background: var(--mist); border: 1px solid var(--line);
+    border-radius: 14px; padding: 20px; text-align: center; width: 212px;
+  }
+  .qr-card svg { display: block; width: 168px; height: 168px; margin: 0 auto; background: #fff; border-radius: 8px; padding: 8px; box-sizing: content-box; }
+  .qr-card figcaption { margin-top: 12px; font-family: var(--mono); font-size: 12px; color: var(--faint); }
+  .paths ul { list-style: none; }
+  .paths li { font-size: 14px; color: var(--slate); padding: 7px 0 7px 18px; position: relative; }
+  .paths li::before { content: "+"; position: absolute; left: 0; color: var(--red); font-family: var(--mono); }
+  .paths li b { color: var(--ink); font-weight: 600; }
+  .paths code { font-family: var(--mono); font-size: 13px; color: var(--ink); background: var(--mist); padding: 2px 6px; border-radius: 6px; }
+
+  /* Why list */
+  .why { display: grid; grid-template-columns: 1fr 1fr; gap: 40px; }
+  @media (max-width: 640px) { .why { grid-template-columns: 1fr; } }
+  .why h3 { font-size: 14px; font-weight: 600; margin-bottom: 12px; }
+  .why ul { list-style: none; }
+  .why li {
+    font-size: 14px; color: var(--slate); padding: 7px 0 7px 18px; position: relative;
+  }
+  .why li::before { content: "+"; position: absolute; left: 0; color: var(--red); font-family: var(--mono); }
+  .why a { color: var(--slate); }
+
+  /* Components */
+  .components li { font-size: 14px; color: var(--slate); padding: 6px 0; list-style: none; }
+  .components code { font-family: var(--mono); font-size: 13px; color: var(--ink); background: var(--mist); padding: 2px 6px; border-radius: 6px; }
+
+  /* Footer */
+  footer {
+    border-top: 1px solid var(--line-soft);
+    padding: 24px 0 36px;
+    display: flex; flex-wrap: wrap; gap: 20px; align-items: center; justify-content: space-between;
+    color: var(--faint); font-size: 13px;
+  }
+  footer .links { display: flex; gap: 18px; }
+  footer a { color: var(--slate); text-decoration: none; }
+  footer a:hover { color: var(--ink); }
+</style>
+</head>
+<body>
+<div class="wrap">
+
+  <nav>
+    <a class="wordmark" href="#">expo demo w/ <span>convex</span></a>
+    <div class="links">
+      <a data-demo href="#" hidden>Demo</a>
+      <a href="docs.html">App docs</a>
+      <a data-repo href="#" hidden>GitHub</a>
+      <a href="https://docs.convex.dev/home">Convex docs</a>
+      <a href="https://docs.expo.dev/">Expo docs</a>
+    </div>
+    <button class="menu-btn" id="menuBtn" aria-label="Open menu" aria-expanded="false" aria-controls="drawer">
+      <svg width="18" height="18" viewBox="0 0 18 18" fill="none" aria-hidden="true">
+        <path d="M2 5h14M2 12h14" stroke="currentColor" stroke-width="1.6" stroke-linecap="round"/>
+      </svg>
+    </button>
+  </nav>
+
+  <div class="scrim" id="scrim"></div>
+  <aside class="drawer" id="drawer" aria-label="Menu">
+    <div class="drawer-head">
+      <span class="drawer-label">menu</span>
+      <button class="drawer-close" id="drawerClose" aria-label="Close menu">
+        <svg width="14" height="14" viewBox="0 0 14 14" fill="none" aria-hidden="true">
+          <path d="M2 2l10 10M12 2L2 12" stroke="currentColor" stroke-width="1.6" stroke-linecap="round"/>
+        </svg>
+      </button>
+    </div>
+    <a data-demo href="#" hidden>Demo</a>
+    <a href="docs.html">App docs</a>
+    <a data-repo href="#" hidden>GitHub</a>
+    <a href="https://docs.convex.dev/home">Convex docs</a>
+    <a href="https://docs.expo.dev/">Expo docs</a>
+  </aside>
+
+  <header>
+    <h1>A mobile agent chat app you can fork, run, and ship. Expo on the front, <em>Convex</em> on the back.</h1>
+    <div class="ctas">
+      <button class="btn btn-red" id="copyPrompt">Copy the setup prompt</button>
+      <a class="btn btn-ink" data-demo href="#" hidden>Open the demo app</a>
+      <a class="btn btn-ink" data-repo href="#" hidden>Fork it</a>
+      <a class="btn btn-ghost" href="docs.html">Read the docs</a>
+    </div>
+    <div class="reset-note">
+      <span class="dot"></span>
+      <span><b>Live demo, posed and public.</b> All demo chats are public, filtered for language and spam, and reset every 5 minutes on a Convex cron. Break them, they heal.</span>
+    </div>
+  </header>
+
+  <section>
+    <h2>the app</h2>
+    <div class="shots">
+      <figure class="shot">
+        <a data-demo-shot aria-label="Open the demo app">
+          <img src="screens/home.png" alt="Home screen listing bots: Chief of Staff, Coach, Research Bot, Sage, and Scout" width="750" height="1280" loading="lazy" />
+        </a>
+        <figcaption>Your roster. Three demo bots are seeded on first run.</figcaption>
+      </figure>
+      <figure class="shot">
+        <a data-demo-shot aria-label="Open the demo app">
+          <img src="screens/chat.png" alt="Group chat where @mentions route a message to Chief of Staff and Research Bot" width="750" height="1280" loading="lazy" />
+        </a>
+        <figcaption>Group chat. @mention a bot and it answers in turn.</figcaption>
+      </figure>
+      <figure class="shot">
+        <a data-demo-shot aria-label="Open the demo app">
+          <img src="screens/settings.png" alt="Settings screen with a provider picker and per provider API key fields" width="750" height="1280" loading="lazy" />
+        </a>
+        <figcaption>BYOK settings. Keys stay on the device.</figcaption>
+      </figure>
+    </div>
+  </section>
+
+  <section id="phone">
+    <h2>run it on your phone</h2>
+    <div class="phone">
+      <figure class="qr-card" id="qrCard">
+        <div id="qr" role="img" aria-label="QR code that opens the web demo"></div>
+        <figcaption>scan for the web demo</figcaption>
+      </figure>
+      <div class="paths">
+        <ul>
+          <li><b>Scan the QR</b> and the web demo opens in your phone browser. It is this same Expo codebase exported for web, served at <code>/app/</code> on the Convex deployment that hosts this page.</li>
+          <li><b>Expo Go</b> is the development path for the native app: run <code>npx expo start</code> in <code>apps/native</code> and scan the QR it prints. Real device, live reload, device keychain.</li>
+          <li><b>TestFlight and internal testing</b> come from <code>eas build</code> and <code>eas submit</code> once you fork. The walkthrough is in <code>docs/deploy.md</code>.</li>
+          <li><b>The stores</b> are the same EAS flow taken through review. Web is the preview; native is the product.</li>
+        </ul>
+      </div>
+    </div>
+  </section>
+
+  <section id="prompt">
+    <h2>one prompt setup</h2>
+    <div class="prompt-card">
+      <p>Copy the setup prompt for your agents. Paste it into any coding agent opened at the root of your fork: it installs, provisions Convex with no API keys required, and hands you a QR code.
+        <span class="meta">9 steps, zero keys required, nothing to read first</span>
+      </p>
+      <button class="copy-btn" id="copyPrompt2">Copy the setup prompt</button>
+    </div>
+    <pre id="promptText" hidden>Set up this expo-demo repo so I have a running mobile agent chat app.
+
+Follow AGENTS.md exactly. You can finish setup with zero API keys.
+
+Steps:
+
+1. Run `npm install` at the repo root.
+2. Start the Convex backend from packages/backend.
+   Prefer `CONVEX_AGENT_MODE=anonymous npx convex dev` if I am not logged
+   in or you cannot handle a login prompt. That provisions an isolated
+   local deployment with no Convex account (see docs/setup.md).
+   If I am already logged in, `npx convex dev` is fine.
+   Keep it running and capture the deployment URL it prints
+   (cloud URL, or http://127.0.0.1:3210 in agent mode).
+3. The Firecrawl component requires FIRECRAWL_API_KEY to exist before a
+   push succeeds. I do not need a real key. Run
+   `npx convex env set FIRECRAWL_API_KEY unset` from packages/backend.
+   The app treats `unset` as not configured.
+4. Create apps/native/.env.local from .env.example and set
+   EXPO_PUBLIC_CONVEX_URL to that deployment URL.
+5. Start the app from apps/native: `npx expo start`. Tell me to scan
+   the QR with Expo Go, or use `npx expo start --web` if I have no phone.
+6. Do not ask me for API keys to finish setup. Firecrawl, AgentMail,
+   Merge, and Runware are optional. If I later give you keys, set them
+   with `npx convex env set` from packages/backend.
+7. The app opens with three seeded demo chats (Chief of Staff, Coach,
+   Research Bot) that a Convex cron resets every 5 minutes. I can browse
+   them with no model key. A model key in Settings is only needed to send
+   a live reply (Anthropic, OpenAI, xAI, OpenRouter, or Concentrate).
+   It stays on my device and never touches the database.
+8. Verify: the roster loads, a demo chat opens, and the demo banner is
+   visible. If I paste a model key, send "hello" and confirm a reply.
+   If anything fails, read `npx convex logs` and fix forward.
+9. Optional: to publish the landing page and web demo, set
+   `npx convex env set FIRECRAWL_API_KEY unset --prod` from
+   packages/backend, then run `npm run site:deploy` from the root.
+   See docs/static-hosting.md.
+
+Rules while you work: do not add any auth provider (Convex Auth comes
+later, nothing else ever), do not persist or log my API keys, and if a
+package version is stale, update it rather than pinning backward.</pre>
+  </section>
+
+  <section>
+    <h2>what you get</h2>
+    <div class="features">
+      <div class="feature">
+        <h3>Bots with jobs</h3>
+        <p>Name a bot, give it a purpose, message it like a coworker. The purpose becomes its persona in the agent loop.</p>
+      </div>
+      <div class="feature">
+        <h3>Group chats and @mentions</h3>
+        <p>Put bots in one thread. They read each other's replies and coordinate. Type @name to route a message to one of them.</p>
+      </div>
+      <div class="feature">
+        <h3>Skill import</h3>
+        <p>Paste a link or a block of instructions in chat and the bot saves it as a reusable skill, for itself or a teammate.</p>
+      </div>
+      <div class="feature">
+        <h3>Memory</h3>
+        <p>Bots keep durable notes between conversations with a remember tool. View and clear from bot settings.</p>
+      </div>
+      <div class="feature">
+        <h3>Reminders on a cron</h3>
+        <p>Each bot carries one reminder. A Convex cron sweeps every 5 minutes and delivers due ones as push notifications.</p>
+      </div>
+      <div class="feature">
+        <h3>Real tools</h3>
+        <p>Firecrawl scraping and search, AgentMail email, Merge business data, Runware image generation. Enabled by env var, per key.</p>
+      </div>
+      <div class="feature">
+        <h3>BYOK, device only</h3>
+        <p>Model keys live in expo-secure-store on your phone and ride each request. They never touch the database or logs.</p>
+      </div>
+      <div class="feature">
+        <h3>Posed demo, self healing</h3>
+        <p>Three seeded chats: a chief of staff, a life coach, a research bot. A cron resets them to script every 5 minutes.</p>
+      </div>
+      <div class="feature">
+        <h3>Auth ready, not auth locked</h3>
+        <p>Runs auth free out of the box, one device one workspace. The seam for Convex Auth is documented in docs/auth.md.</p>
+      </div>
+    </div>
+  </section>
+
+  <section>
+    <h2>why this stack</h2>
+    <div class="why">
+      <div>
+        <h3>Convex</h3>
+        <ul>
+          <li>Queries are reactive. The chat updates itself; there is no polling code anywhere in this repo.</li>
+          <li>The agent loop is one action. Tool calls, streaming, and scheduling live in TypeScript, not glue.</li>
+          <li>Crons are three lines. The demo reset and reminders are the whole file.</li>
+          <li>Types flow from schema to app. The Expo app imports the backend's generated API.</li>
+          <li><a href="https://www.convex.dev/components">Components</a> replace infra you would hand build.</li>
+        </ul>
+      </div>
+      <div>
+        <h3>Expo</h3>
+        <ul>
+          <li>One codebase runs on iOS, Android, and web, including this demo.</li>
+          <li>File based routing with expo-router. Screens are files.</li>
+          <li>expo-secure-store keeps model keys in the device keychain.</li>
+          <li>Push notifications wired through EAS and a Convex component.</li>
+          <li>Scan a QR code with Expo Go and you are running the app.</li>
+          <li>One command provisions the backend: <a href="https://docs.expo.dev/guides/using-convex/">eas integrations:convex:connect</a>, from the Expo guide to using Convex.</li>
+        </ul>
+      </div>
+    </div>
+  </section>
+
+  <section>
+    <h2>convex components used</h2>
+    <ul class="components">
+      <li><code>@convex-dev/expo-push-notifications</code>: batching, retries, and delivery state for Expo push. <a href="https://www.convex.dev/components/push-notifications">Component page</a></li>
+      <li><code>@agentmail/convex</code>: a stateful email inbox for your bots. Durable sends with retries and webhook ingest for inbound mail. <a href="https://www.npmjs.com/package/@agentmail/convex">Package page</a></li>
+      <li><code>@firecrawl/firecrawl-convex</code>: web scraping and search for the agent tools. Typed v2 API calls with retries, plus durable site crawls tracked in your database when you need them. <a href="https://www.convex.dev/components/firecrawl/firecrawl-convex">Component page</a></li>
+      <li><code>@convex-dev/static-hosting</code>: serves this page and the web demo at /app/ from the same deployment. <a href="https://www.convex.dev/components/static-hosting">Component page</a></li>
+      <li><code>@convex-dev/rate-limiter</code>: send and bot creation limits for the public demo, idle in private forks. <a href="https://www.convex.dev/components/rate-limiter">Component page</a></li>
+      <li>Everything else is core Convex on purpose, so the code stays readable. When your fork outgrows it, each piece has a named upgrade: the agent loop to <a href="https://www.convex.dev/components/agent">AI Agent</a>, chunked streaming to <a href="https://www.convex.dev/components/persistent-text-streaming">Persistent Text Streaming</a>, multi step tool runs to <a href="https://www.convex.dev/components/workflow">Workflow</a>, skill and memory recall to <a href="https://www.convex.dev/components/rag">RAG</a>.</li>
+      <li>Browse the full directory before hand building backend infrastructure: <a href="https://www.convex.dev/components">convex.dev/components</a></li>
+    </ul>
+  </section>
+
+  <footer>
+    <span>MIT licensed. Built for the Convex and Expo communities.</span>
+    <div class="links">
+      <a data-demo href="#" hidden>Demo</a>
+      <a href="docs.html">App docs</a>
+      <a data-repo href="#" hidden>GitHub</a>
+      <a href="https://convex.dev">convex.dev</a>
+      <a href="https://docs.convex.dev/home">docs.convex.dev</a>
+      <a href="https://docs.expo.dev/">docs.expo.dev</a>
+    </div>
+  </footer>
+
+</div>
+
+<script src="qrcode.min.js"></script>
+<script>
+  // Set after you publish your fork, same convention as apps/native/lib/links.ts.
+  // While empty, GitHub links stay hidden instead of pointing nowhere.
+  const REPO_URL = "https://github.com/waynesutton/expo-convex-agent-app-demo";
+
+  // The Expo web demo ships at /app/ on the same Convex deployment when you
+  // host this site with `npm run site:deploy` (see docs/static-hosting.md).
+  // Same-origin, so the relative path just works. Point it at a full URL if
+  // you host the demo elsewhere, or set it to "" to hide the demo links and
+  // the QR code.
+  const DEMO_URL = "/app/";
+
+  if (REPO_URL) {
+    document.querySelectorAll("[data-repo]").forEach((a) => {
+      a.href = REPO_URL;
+      a.hidden = false;
+    });
+  }
+
+  if (DEMO_URL) {
+    document.querySelectorAll("[data-demo]").forEach((a) => {
+      a.href = DEMO_URL;
+      a.hidden = false;
+    });
+    document.querySelectorAll("[data-demo-shot]").forEach((a) => {
+      a.href = DEMO_URL;
+    });
+  }
+
+  const promptText = document.getElementById("promptText").textContent;
+  function wireCopy(id) {
+    const btn = document.getElementById(id);
+    if (!btn) return;
+    btn.addEventListener("click", async () => {
+      await navigator.clipboard.writeText(promptText);
+      const original = btn.textContent;
+      btn.textContent = "copied";
+      btn.classList.add("copied");
+      setTimeout(() => {
+        btn.textContent = original;
+        btn.classList.remove("copied");
+      }, 1500);
+    });
+  }
+  wireCopy("copyPrompt");
+  wireCopy("copyPrompt2");
+
+  // Mobile drawer. Opens from the menu button, closes on the scrim, the
+  // close button, any link, or Escape. Body scroll locks while open.
+  const drawer = document.getElementById("drawer");
+  const scrim = document.getElementById("scrim");
+  const menuBtn = document.getElementById("menuBtn");
+  function setMenu(open) {
+    drawer.classList.toggle("open", open);
+    scrim.classList.toggle("open", open);
+    menuBtn.setAttribute("aria-expanded", String(open));
+    document.body.style.overflow = open ? "hidden" : "";
+  }
+  menuBtn.addEventListener("click", () => setMenu(true));
+  document.getElementById("drawerClose").addEventListener("click", () => setMenu(false));
+  scrim.addEventListener("click", () => setMenu(false));
+  drawer.addEventListener("click", (e) => { if (e.target.closest("a")) setMenu(false); });
+  document.addEventListener("keydown", (e) => { if (e.key === "Escape") setMenu(false); });
+
+  // Render the QR locally with the vendored qrcode-generator library (MIT,
+  // landing/qrcode.min.js). No external image service, so the page works
+  // offline and leaks nothing. The QR encodes the absolute demo URL.
+  const qrCard = document.getElementById("qrCard");
+  if (DEMO_URL && typeof qrcode === "function") {
+    const absoluteDemoUrl = new URL(DEMO_URL, location.href).href;
+    const qr = qrcode(0, "M");
+    qr.addData(absoluteDemoUrl);
+    qr.make();
+    document.getElementById("qr").innerHTML = qr.createSvgTag({ cellSize: 4, margin: 0 });
+  } else if (qrCard) {
+    qrCard.hidden = true;
+  }
+</script>
+</body>
+</html>

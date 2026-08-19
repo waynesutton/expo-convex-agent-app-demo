@@ -1,0 +1,13 @@
+---
+description: expo-demo repo rules
+alwaysApply: true
+---
+
+Read AGENTS.md at the repo root. It is the source of truth.
+
+Non-negotiable:
+- Auth path is Convex Auth, and it is not set up yet. Never install Better Auth, Clerk, or WorkOS.
+- User LLM API keys stay in expo-secure-store on device. Never persist or log them.
+- Convex queries are reactive. No polling code.
+- Check https://www.convex.dev/components before hand-building backend infrastructure.
+- Import backend types from @expo-demo/backend; never duplicate them.

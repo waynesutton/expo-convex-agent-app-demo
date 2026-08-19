@@ -1,0 +1,29 @@
+{
+  "expo": {
+    "name": "expo-demo",
+    "slug": "expo-demo",
+    "version": "0.1.0",
+    "scheme": "expodemo",
+    "orientation": "portrait",
+    "userInterfaceStyle": "light",
+    "backgroundColor": "#FFFFFF",
+    "ios": {
+      "bundleIdentifier": "com.yourcompany.expodemo",
+      "supportsTablet": false
+    },
+    "android": {
+      "package": "com.yourcompany.expodemo"
+    },
+    "experiments": {
+      "baseUrl": "/app"
+    },
+    "plugins": [
+      "expo-router",
+      "expo-secure-store",
+      [
+        "expo-notifications",
+        { "color": "#C08B3C" }
+      ]
+    ]
+  }
+}
